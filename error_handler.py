@@ -37,15 +37,18 @@ class ErrorCode:
     # 簡述(30-)
     INVALID_OPERATION = 3001  # 無效的操作
     INVALID_PERMISSION = 3002  # 權限不足
-    INVALID_ACCESS_TOKEN = 3003  # 無效通行証
-    INVALID_PHONE_NUMBER = 3004  # 無效手機號碼
-    INVALID_EMAIL = 3005  # 無效手機號碼
-    INVALID_USERNAME = 3006  # 無效手機號碼
-    INVALID_PASSWORD = 3007  # 無效密碼
-    INVALID_VERIFY_CODE = 3008  # 無效驗證代碼
-    INVALID_KEYWORD_LENGTH = 3009  # 無效關鍵字長度
-    INVALID_FILE_SIZE = 3010  # 無效檔案大小
-    INVALID_IMAGE_FORMAT = 3011  # 無效圖片格式
+    INVALID_ACCESS_TOKEN = 3003  # 無效通行証書
+    INVALID_REFRESH_TOKEN = 3004  # 無效重置証書
+    INVALID_PHONE_NUMBER = 3005  # 無效手機號碼
+    INVALID_EMAIL = 3006  # 無效信箱
+    INVALID_USERNAME = 3007  # 無效使用者名稱
+    INVALID_PASSWORD = 3008  # 無效密碼
+    INVALID_VERIFY_CODE = 3009  # 無效驗證代碼
+    INVALID_KEYWORD_LENGTH = 3010  # 無效關鍵字長度
+    INVALID_FILE_SIZE = 3011  # 無效檔案大小
+    INVALID_IMAGE_FORMAT = 3012  # 無效圖片格式
+    INVALID_BIRTHDAY_FORMAT = 3013  # 無效生日格式
+    INVALID_IP_ADDRESS = 3014  # 無效遠端IP地址
 
     # 細述(31-)
     ACCESS_TOKEN_MISSING = 3101  # 未包含通行証
@@ -63,9 +66,17 @@ class ErrorCode:
     AMOUNT_INSUFFICIENT = 3113  # 餘額不足
     AMOUNT_INVALID = 3114  # 金額條件不符
     FILE_NOT_EXIST = 3115  # 檔案不存在
-    APP_VERSION_DETAIL_IS_MISSING = 3116  # 表頭未包含版本資訊
-    APP_VERSION_IS_OUT_OF_DATE = 3117  # APP版本過時
-    APP_VERSION_FORMAT_ERROR = 3118  # 錯誤的APP版本格式
+    REACHED_RESET_PASSWORD_MAXIMUM = 3116  # 觸及密碼重設最大額度
+    REFERRAL_CODE_NOT_EXIST = 3117  # 邀請碼不存在
+    APP_VERSION_DETAIL_IS_MISSING = 3118  # 表頭未包含版本資訊
+    APP_VERSION_IS_OUT_OF_DATE = 3119  # APP版本過時
+    APP_VERSION_FORMAT_ERROR = 3120  # 錯誤的APP版本格式
+    MESSAGE_ROOM_IS_NOT_EXIST = 3121  # 聊天室不存在
+    SESSION_IS_NOT_EXIST = 3122  # 連線id不存在
+    PHONE_IS_EXIST = 3123  # 重複的手機號碼
+    PHONE_IS_NOT_EXIST = 3124  # 手機不存在
+    OTP_IS_EXPIRED = 3125  # OTP 過期
+    INVALID_OTP = 3126  # OTP 錯誤
 
     """
     9.  專案用錯誤
@@ -79,6 +90,41 @@ class ErrorCode:
     GAME_NOT_FOUND = 9006  # 遊戲被刪除或不存在
     REACHED_RESET_PASSWORD_MAXIMUM = 9007  # 觸及密碼重設最大額度
     """
+    API_CONNECTION_ERROR = 9001  # 請求第三方API失敗
+    INVALID_PAN_DETAILS = 9002  # PAN 驗證失敗
+    INVALID_PAN_NUMBER = 9003  # PAN NUMBER 格式錯誤
+    INVALID_BANK_ACCOUNT = 9004  # 銀行帳戶不合法
+    BANK_NAME_INCORRECT = 9005  # 銀行名稱不正確
+    BRANCH_NAME_INCORRECT = 9006  # 分行名稱不正確
+    BANK_ACCOUNT_NOT_FOUND = 9007  # 銀行帳戶不存在
+    PHONE_NOT_BOUND = 9008  # 手機號碼未綁定
+    PHONE_NOT_VERIFIED = 9009  # 手機號碼未驗證
+    PHONE_HAS_BEEN_VERIFIED = 9010  # 手機已驗證過
+    EMAIL_HAS_BEEN_VERIFIED = 9011  # 信箱已驗證過
+    INVALID_AADHAAR = 9012  # AADHAAR 格式錯誤
+
+    # ===== deposit ===== #
+    TICKET_NUMBER_IS_EXIST = 9200  # 商戶單號已經存在
+    TICKET_NOT_IN_PROCESSING = 9201  # 訂單非正確狀態
+    TICKET_NOT_EXIST = 9202  # 三方單不存在
+    DEPOSIT_CHANNEL_NOT_EXIST = 9203  # 渠道不存在
+    DEPOSIT_CHANNEL_SETTING_NOT_EXIST = 9204  # 設定不存在
+    DEPOSIT_TICKET_NOT_FOUND = 9205  # 訂單不存在
+    REQUEST_UPSTREAM_FAILED = 9206  # 請求上游失敗
+    LINK_EXPIRED = 9207  # payment link 過期
+    SERIAL_NUMBER_MISSING = 9208  # 找不到單號
+    TICKET_AMOUNT_NOT_MATCH = 9209  # 回調金額與單子不匹配
+
+    # ===== payment ===== #
+    CHANNEL_NOT_EXIST = 9400  # 支付渠道不存在
+    CHANNEL_ALREADY_EXIST = 9401  # 支付渠道已存在
+    CALLBACK_STATUS_WRONG = 9415  # callback狀態錯誤
+    PAYMENT_FEE_SETTING_NOT_FOUND = 9416  # 手續費設定不存在
+
+    # ===== GAME ===== #
+    UNDER_MAINTENANCE = 9601  # 維護中
+    REFRESH_REQUIRED = 9602  # 請求重整
+    VERSION_OUT_OF_DATE = 9603  # 版本過時
 
     @classmethod
     def _get_key(cls, error_code):
@@ -99,16 +145,6 @@ class ErrorCode:
         return None
 
     @classmethod
-    def to_dict(cls):
-        result = dict()
-        for k, v in cls.__dict__.items():
-            if k.startswith('_') or type(v) in {classmethod, staticmethod}:
-                continue
-            tmp = {v: k.replace('_', ' ').title()}
-            result.update(tmp)
-        return result
-
-    @classmethod
     def get_error_schema(cls, message, error_code):
         error_schema = {
             'message': message,
@@ -117,6 +153,16 @@ class ErrorCode:
             'error_msg': cls._get_msg(error_code),
         }
         return error_schema
+
+    @classmethod
+    def to_dict(cls):
+        result = dict()
+        for k, v in cls.__dict__.items():
+            if k.startswith('_') or type(v) in {classmethod, staticmethod}:
+                continue
+            tmp = {v: k.replace('_', ' ').title()}
+            result.update(tmp)
+        return result
 
 
 class _BaseError(Exception):
@@ -169,6 +215,20 @@ class NotAuthorizedError(_BaseError):
         )
 
 
+class ForbiddenError(_BaseError):
+    """
+    - 禁用錯誤
+    """
+
+    def __init__(self, error_code=None, message=None, debug_message=None):
+        super(ForbiddenError, self).__init__(
+            code=403,
+            message=message,
+            error_code=error_code,
+            debug_message=debug_message
+        )
+
+
 class NotFoundError(_BaseError):
     """
     - 資料錯誤
@@ -191,6 +251,20 @@ class ImageError(_BaseError):
     def __init__(self, error_code=None, message=None, debug_message=None):
         super(ImageError, self).__init__(
             code=405,
+            message=message,
+            error_code=error_code,
+            debug_message=debug_message
+        )
+
+
+class TransactionError(_BaseError):
+    """
+    - 交易錯誤
+    """
+
+    def __init__(self, error_code=None, message=None, debug_message=None):
+        super(TransactionError, self).__init__(
+            code=400,
             message=message,
             error_code=error_code,
             debug_message=debug_message

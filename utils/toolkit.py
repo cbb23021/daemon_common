@@ -11,20 +11,20 @@ from flask import request
 
 from app import config
 from common.const import Const
-from common.data_cache.fantasyee import FantasyeeDataCache
+from common.data_cache import DataCache
 from common.error_handler import ErrorCode, ValidationError
+
 
 
 class Toolkit:
     _VERSION_TAG_LENGTH = 2
 
-    _SDK_STRICT_METHODS = {
-        Const.SdkType.DEPOSIT,
-        Const.SdkType.WITHDRAW,
-        Const.SdkType.MEMBER_LOGIN,
-        Const.SdkType.UPDATE_MEMBER,
-        Const.SdkType.GAME_RECORD,
-    }
+    # _SDK_STRICT_METHODS = {
+    #     Const.SdkType.DEPOSIT,
+    #     Const.SdkType.MEMBER_LOGIN,
+    #     Const.SdkType.UPDATE_MEMBER,
+    #     Const.SdkType.GAME_RECORD,
+    # }
 
     # agent + username = unique user
     _SDK_PAYLOAD_KEYS = {
@@ -138,10 +138,10 @@ class Toolkit:
             return str()
         if not payload:
             return str()
-        sdk_method = payload.get('method')
-        if is_sdk and sdk_method in cls._SDK_STRICT_METHODS:
-            data = {k: payload.get(k) for k in cls._SDK_PAYLOAD_KEYS}
-            return cls._sort_key(data=data)
+        # sdk_method = payload.get('method')
+        # if is_sdk and sdk_method in cls._SDK_STRICT_METHODS:
+        #     data = {k: payload.get(k) for k in cls._SDK_PAYLOAD_KEYS}
+        #     return cls._sort_key(data=data)
         return cls._sort_key(data=payload)
 
     @classmethod
@@ -163,7 +163,7 @@ class Toolkit:
                     is_sdk=is_sdk,
                     has_payload=has_payload,
                 )
-                request_lock = FantasyeeDataCache.get_request_lock(
+                request_lock = DataCache.get_request_lock(
                     user_id=user.id if user else str(),
                     role=user.role if user else str(),
                     request_method=request_method,
@@ -174,7 +174,7 @@ class Toolkit:
                 if request_lock:
                     message = 'Request Frequency Too High'
                     raise ValidationError(error_code=ErrorCode.INVALID_OPERATION, message=message)
-                FantasyeeDataCache.set_request_lock(
+                DataCache.set_request_lock(
                     role=user.role if user else str(),
                     user_id=user.id if user else str(),
                     request_method=request_method,

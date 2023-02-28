@@ -1,12 +1,11 @@
 import json
 from datetime import datetime
 
-from app import rs, config
-from common.orm.fantasyee_models import Team, League, Squad, Match
-from common.redis_key.fantasyee import FantasyeeRedisKey
+from app import config, rs
+from common.redis_key import RedisKey
 
 
-class FantasyeeDataCache:
+class DataCache:
     _EXPIRATION_LONG_TERM = 60 * 60 * 24 * 3
     _EXPIRATION_MID_TERM = 60 * 60 * 24
     _EXPIRATION_SHORT_TERM = 60 * 5
@@ -40,7 +39,7 @@ class FantasyeeDataCache:
     @classmethod
     def set_member_login(cls, member_info):
         member = member_info['member']
-        key = FantasyeeRedisKey.member_login(member_id=member.id)
+        key = RedisKey.member_login(member_id=member.id)
         player_info = {
             'id': member.id,
             'username': member.username,
@@ -55,16 +54,20 @@ class FantasyeeDataCache:
             'refresh_token': member_info['refresh_token'],
             'avatar': member.avatar,
         }
-        rs.set(key, value=json.dumps(player_info), ex=cls._EXPIRATION_SDK_LOGIN)
+        rs.set(key,
+               value=json.dumps(player_info),
+               ex=cls._EXPIRATION_SDK_LOGIN)
 
     @classmethod
     def update_member_login(cls, member_id, member_info):
-        key = FantasyeeRedisKey.member_login(member_id=member_id)
-        rs.set(key, value=json.dumps(member_info), ex=cls._EXPIRATION_SDK_LOGIN)
+        key = RedisKey.member_login(member_id=member_id)
+        rs.set(key,
+               value=json.dumps(member_info),
+               ex=cls._EXPIRATION_SDK_LOGIN)
 
     @staticmethod
     def get_member_login(member_id):
-        key = FantasyeeRedisKey.member_login(member_id=member_id)
+        key = RedisKey.member_login(member_id=member_id)
         value = rs.get(key)
         return json.loads(value) if value else None
 
@@ -78,18 +81,25 @@ class FantasyeeDataCache:
 
     @classmethod
     def set_sdk_deposit_lock(cls, member_id):
-        key = FantasyeeRedisKey.sdk_deposit_lock(member_id=member_id)
+        key = RedisKey.sdk_deposit_lock(member_id=member_id)
         value = str(datetime.now())
         rs.set(key, value=value, ex=cls._MEMBER_TRANSFER_INTERVAL)
 
     @staticmethod
     def get_sdk_deposit_lock(member_id):
-        key = FantasyeeRedisKey.sdk_deposit_lock(member_id=member_id)
+        key = RedisKey.sdk_deposit_lock(member_id=member_id)
         return rs.get(key)
 
     @classmethod
-    def set_request_lock(cls, role, user_id, request_method, request_path, request_args, request_payload, ex=None):
-        key = FantasyeeRedisKey.request_lock(
+    def set_request_lock(cls,
+                         role,
+                         user_id,
+                         request_method,
+                         request_path,
+                         request_args,
+                         request_payload,
+                         ex=None):
+        key = RedisKey.request_lock(
             role=role,
             user_id=user_id,
             request_method=request_method,
@@ -102,8 +112,9 @@ class FantasyeeDataCache:
         rs.set(key, value=value, ex=ex)
 
     @staticmethod
-    def get_request_lock(user_id, role, request_method, request_path, request_args, request_payload):
-        key = FantasyeeRedisKey.request_lock(
+    def get_request_lock(user_id, role, request_method, request_path,
+                         request_args, request_payload):
+        key = RedisKey.request_lock(
             role=role,
             user_id=user_id,
             request_method=request_method,
@@ -116,22 +127,23 @@ class FantasyeeDataCache:
     # ----------------------------- [order] ----------------------------- #
     @staticmethod
     def get_spare_order_id(contest_id):
-        key = FantasyeeRedisKey.wait_order_ids(contest_id=contest_id)
+        key = RedisKey.wait_order_ids(contest_id=contest_id)
         return rs.rpop(key)
 
     @staticmethod
     def push_order_data_to_wait(contest_id, value):
-        key = FantasyeeRedisKey.wait_order_ids(contest_id)
+        key = RedisKey.wait_order_ids(contest_id)
         return rs.rpush(key, *value)
 
     @staticmethod
     def get_used_order_data(contest_id, wait_time=10):
-        key = FantasyeeRedisKey.used_order_data(contest_id)
+        key = RedisKey.used_order_data(contest_id)
         return rs.blpop(key, wait_time)
 
     @staticmethod
-    def push_order_data_to_used(contest_id, order_id, member_id, lineup_id, cash, coin, winnings, ticket, bet_datetime):
-        key = FantasyeeRedisKey.used_order_data(contest_id=contest_id)
+    def push_order_data_to_used(contest_id, order_id, member_id, lineup_id,
+                                cash, coin, winnings, ticket, bet_datetime):
+        key = RedisKey.used_order_data(contest_id=contest_id)
         value = f'{order_id}:{member_id}:{lineup_id}:{cash}:{coin}:{winnings}:{ticket}:{bet_datetime}'
         rs.lpush(key, value)
 
@@ -139,27 +151,27 @@ class FantasyeeDataCache:
 
     @staticmethod
     def get_active_contest_id(wait_time=10):
-        key = FantasyeeRedisKey.active_contest_ids()
+        key = RedisKey.active_contest_ids()
         return rs.blpop(key, wait_time)
 
     @staticmethod
     def push_active_contest_ids(contest_ids):
-        key = FantasyeeRedisKey.active_contest_ids()
+        key = RedisKey.active_contest_ids()
         return rs.lpush(key, *contest_ids)
 
     # --------------------------------- cancel contest signal to daemon ---------------------------------- #
     @staticmethod
     def set_cancel_contest_signal(contest_id):
-        key = FantasyeeRedisKey.cancel_contest_ids()
+        key = RedisKey.cancel_contest_ids()
         rs.sadd(key, contest_id)
 
     @staticmethod
     def get_cancel_contest_signal():
-        key = FantasyeeRedisKey.cancel_contest_ids()
+        key = RedisKey.cancel_contest_ids()
         ids = rs.smembers(key)
         return ids or set()
 
     @staticmethod
     def del_cancel_contest_signal(contest_id):
-        key = FantasyeeRedisKey.cancel_contest_ids()
+        key = RedisKey.cancel_contest_ids()
         rs.srem(key, contest_id)

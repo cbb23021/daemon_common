@@ -7,7 +7,7 @@ from flask import request
 from app import db
 from common.const import Const
 from common.error_handler import ErrorCode, ValidationError
-from common.orm.fantasyee_models import (
+from common.models import (
     Admin, AdminOperation,
     Member, MemberOperation,
 )
