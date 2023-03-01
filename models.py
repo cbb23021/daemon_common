@@ -1,254 +1,210 @@
-from sqlalchemy import func, text
-from sqlalchemy.schema import UniqueConstraint
+from sqlalchemy import text
+from sqlalchemy.dialects.mysql import MEDIUMTEXT
 
-from app import db, config
+from app import db
+from common.models_template import ModelsTemplate
 
-BIND_KEY = config['DB_NAME']
-
-"""
-- 使用者
-    Admin
-    Member
-
-- 操作記錄
-    AdminOperation
-    MemberOperation
-
-- 賽池
-    Category
-    Criterion
-    Contest
-    Order
-    Lineup
-
-- 交易記錄
-    MemberDepositTransaction
-    MemberFeeTransaction
-    MemberPrizeTransaction
-
-    TransactionLog
-"""
+""" ADMIN 相關資料 """
 
 
-class Admin(db.Model):
-    """
-        後台使用者
-        - 擁有者 11
-        - 維護人員: 12
-
-        - 娛樂城管理員: 13
-    """
-    __bind_key__ = BIND_KEY
+class Admin(db.Model, ModelsTemplate):
     __tablename__ = 'admin'
-    id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(30), nullable=False, unique=True, index=True, comment='登入帳號')
-    nickname = db.Column(db.String(30), nullable=False, index=True, comment='用戶暱稱')
     password = db.Column(db.String(100), nullable=False, comment='登入密碼')
-    role = db.Column(db.Integer, nullable=False, comment='角色類型')
-    phone = db.Column(db.String(30), comment='電話')
-    email = db.Column(db.String(100), comment='信箱')
+    role = db.Column(db.Integer, nullable=False, comment='角色類型OWNER:11/MAINTAINER:12/OPERATOR:13/REPORTER:14/MARKETER:15')
     remark = db.Column(db.String(100), comment='備註')
-    secret_key = db.Column(db.String(30), unique=True, comment='SDK金鑰', doc='系統產生，用於識別玩家歸屬')
-    is_active = db.Column(db.Boolean, nullable=False, server_default=text('1'), comment='是否可用', doc='控制器')
-    update_datetime = db.Column(db.DateTime, nullable=False, server_default=func.now(), onupdate=func.now())  # 更新時間
-    create_datetime = db.Column(db.DateTime, nullable=False, server_default=func.now())  # 建立時間
+    is_block = db.Column(db.Boolean, nullable=False, server_default=text('0'), comment='黑名單')
+    latest_login_info = db.Column(db.JSON, nullable=False, comment='上次登入資訊')
 
-    members = db.relationship('Member', backref='admin', lazy='dynamic')
-    system_logs = db.relationship('SystemSettingLog', backref='admin', lazy='dynamic')
+    operations = db.relationship('AdminOperation', backref='admin', lazy='dynamic')
 
 
-class AdminOperation(db.Model):
+class AdminOperation(db.Model, ModelsTemplate):
     """ 操作記錄 管理員 """
-    __bind_key__ = BIND_KEY
     __tablename__ = 'admin_operation'
-    id = db.Column(db.Integer, primary_key=True)
-    operator_id = db.Column(db.Integer, db.ForeignKey('admin.id'), nullable=False, comment='管理員')
+    admin_id = db.Column(db.Integer, db.ForeignKey('admin.id'), nullable=False, comment='管理員')
     method = db.Column(db.Integer, nullable=False, comment='操作類型')
     route = db.Column(db.String(100), nullable=False, comment='使用路由')
-    payload = db.Column(db.JSON, comment='使用資料')
-    create_datetime = db.Column(db.DateTime, nullable=False, server_default=func.now())  # 建立時間
+    args = db.Column(db.Text, comment='使用參數')
+    payload = db.Column(db.Text, comment='使用資料')
+    address = db.Column(db.String(30), comment='授權地址')
+    platform = db.Column(db.String(30), comment='系統')
+    browser = db.Column(db.String(30), comment='瀏覽器')
+    language = db.Column(db.String(30), comment='語言')
+    user_agent = db.Column(db.String(300), comment='使用者代理')
 
-    operator = db.relationship('Admin', foreign_keys=[operator_id], lazy='joined')
 
-
-class Member(db.Model):
-    """
-        用戶
-        - 登入玩家: 21
-    """
-    __bind_key__ = BIND_KEY
+class Member(db.Model, ModelsTemplate):
     __tablename__ = 'member'
-    __table_args__ = (
-        db.UniqueConstraint( 'agent', 'username', name='unique_username'),
-    )
-    id = db.Column(db.Integer, primary_key=True)
-    agent = db.Column(db.String(30), index=True, comment='代理')
-    username = db.Column(db.String(30), nullable=False, index=True, comment='登入帳號')
-    nickname = db.Column(db.String(30), nullable=False, index=True, comment='用戶暱稱')
-    password = db.Column(db.String(100), nullable=False, comment='登入密碼')
-    role = db.Column(db.Integer, nullable=False, comment='角色類型')
-    avatar = db.Column(db.Integer, nullable=False, server_default=text('1'), comment='頭像類型')
+    username = db.Column(db.String(100), unique=True, index=True, comment='使用者帳號')
+    nickname = db.Column(db.String(100), nullable=False, comment='用戶暱稱')
+    phone = db.Column(db.String(30), unique=True, comment='電話')
+    email = db.Column(db.String(100), unique=True, index=True, comment='登入帳號/信箱')
+    role = db.Column(db.Integer, nullable=False, comment='角色類型', doc='member:21')
+    latest_login_info = db.Column(db.JSON, nullable=False, comment='上次登入資訊')
     remark = db.Column(db.String(100), comment='備註')
-    is_active = db.Column(db.Boolean, nullable=False, server_default=text('1'), comment='是否可用', doc='控制器')
-    update_datetime = db.Column(db.DateTime, nullable=False, server_default=func.now(), onupdate=func.now())  # 更新時間
-    create_datetime = db.Column(db.DateTime, nullable=False, server_default=func.now())  # 建立時間
+    is_block = db.Column(db.Boolean, nullable=False, server_default=text('0'), comment='黑名單')
+    password = db.Column(db.String(100), nullable=False, comment='登入密碼')
 
-    wallet = db.relationship('Wallet', backref='member', uselist=False, lazy='select')  # 唯一
+    cash = db.relationship('Cash', backref='member', uselist=False, lazy='select')
+    ticket = db.relationship('Ticket', backref='member', uselist=False, lazy='select')
 
-    orders = db.relationship('Order', backref='member', lazy='dynamic')
-    deposits = db.relationship('MemberDepositTransaction', backref='member', lazy='dynamic')
-    fees = db.relationship('MemberFeeTransaction', backref='member', lazy='dynamic')
-    prizes = db.relationship('MemberPrizeTransaction', backref='member', lazy='dynamic')
-    balance_logs = db.relationship('TransactionLog', backref='member', lazy='dynamic')
+    operations = db.relationship('MemberOperation', backref='member', lazy='dynamic')
 
 
-class MemberOperation(db.Model):
+class MemberOperation(db.Model, ModelsTemplate):
     """ 操作記錄 用戶 """
-    __bind_key__ = BIND_KEY
     __tablename__ = 'member_operation'
-    id = db.Column(db.Integer, primary_key=True)
-    operator_id = db.Column(db.Integer, db.ForeignKey('member.id'), nullable=False, comment='用戶')
+    member_id = db.Column(db.Integer, db.ForeignKey('member.id'), nullable=False, comment='用戶')
     method = db.Column(db.Integer, nullable=False, comment='操作類型')
     route = db.Column(db.String(100), nullable=False, comment='使用路由')
-    payload = db.Column(db.JSON, comment='使用資料')
-    create_datetime = db.Column(db.DateTime, nullable=False, server_default=func.now())  # 建立時間
-
-    operator = db.relationship('Member', foreign_keys=[operator_id], lazy='joined')
-
-
-class Wallet(db.Model):
-    """ 用戶 結餘 """
-    __bind_key__ = BIND_KEY
-    __tablename__ = 'wallet'
-    id = db.Column(db.Integer, primary_key=True)
-    member_id = db.Column(db.Integer, db.ForeignKey('member.id'), nullable=False, unique=True, index=True, comment='用戶')
-
-    cash = db.Column(db.Integer, nullable=False, server_default=text('0'), comment='儲值金')
-    ticket = db.Column(db.Integer, nullable=False, server_default=text('0'), comment='金券')
-
-    update_datetime = db.Column(db.DateTime, nullable=False, server_default=func.now(), onupdate=func.now())  # 更新時間
-    create_datetime = db.Column(db.DateTime, nullable=False, server_default=func.now())  # 建立時間
+    args = db.Column(db.Text, comment='使用參數')
+    payload = db.Column(db.Text, comment='使用資料')
+    address = db.Column(db.String(30), comment='授權地址')
+    platform = db.Column(db.String(30), comment='系統')
+    browser = db.Column(db.String(30), comment='瀏覽器')
+    language = db.Column(db.String(30), comment='語言')
+    user_agent = db.Column(db.String(300), comment='使用者代理')
 
 
-class Contest(db.Model):
-    __bind_key__ = BIND_KEY
-    __tablename__ = 'contest'
-    id = db.Column(db.Integer, primary_key=True)
-    is_archive = db.Column(db.Boolean, nullable=False, server_default=text('0'), comment='是否封存')
-    status = db.Column(db.Integer, nullable=False, server_default=text('1'), comment='CREATED:1/ACTIVATED:2/CANCELED:3')
+class Cash(db.Model, ModelsTemplate):
+    """ 儲值金 """
+    __tablename__ = 'cash'
+    member_id = db.Column(db.Integer, db.ForeignKey('member.id'), nullable=False, unique=True, index=True, comment='會員')
+    amount = db.Column(db.Integer, nullable=False, server_default=text('0'), comment='可用額度')
+    freeze = db.Column(db.Integer, nullable=False, server_default=text('0'), comment='不可操作')
+    is_locked = db.Column(db.Boolean, nullable=False, server_default=text('0'), comment='是否上鎖')
 
-    open_datetime = db.Column(db.DateTime, comment='開賽時間')
-    settle_datetime = db.Column(db.DateTime, comment='結算時間')
+
+class Ticket(db.Model, ModelsTemplate):
+    """ 票夾 """
+    __tablename__ = 'ticket'
+    member_id = db.Column(db.Integer, db.ForeignKey('member.id'), nullable=False, unique=True, index=True, comment='會員')
+    amount = db.Column(db.JSON, nullable=False, comment='票券數量')  # {"daily_bonus": 1, ...}
+
+
+""" 系統 相關資料 """
+
+""" block setting """
+
+
+class Whitelist(db.Model, ModelsTemplate):
+    __tablename__ = 'whitelist'
+    address = db.Column(db.String(30), nullable=False, unique=True, index=True, comment='ip地址')
+    remark = db.Column(db.String(30), index=True, comment='備註')
+
+
+class Blacklist(db.Model, ModelsTemplate):
+    __tablename__ = 'blacklist'
+    address = db.Column(db.String(30), nullable=False, unique=True, index=True, comment='ip地址')
+    remark = db.Column(db.String(30), index=True, comment='備註')
+
+
+""" Rewards """
+
+
+class RewardSetting(db.Model, ModelsTemplate):
+    """ Reward 設定 """
+    __tablename__ = 'reward_setting'
+    category = db.Column(db.Integer, nullable=False, comment='1:遊戲/')
+    name = db.Column(db.String(100), nullable=False, comment='活動名稱')
+    start_datetime = db.Column(db.DateTime, nullable=False, comment='生效開始時間')
+    end_datetime = db.Column(db.DateTime, comment='生效結束時間')
+    type = db.Column(db.Integer, comment='1:cash/2:ticket')
+    fixed_amount = db.Column(db.Integer, comment='固定獎金/金額')
+    min_amount = db.Column(db.Integer, comment='隨機獎金/最低金額')
+    max_amount = db.Column(db.Integer, comment='隨機獎金/最高金額')
+    amount_limit = db.Column(db.Integer, comment='頒發總獎金上限')
+    detail = db.Column(MEDIUMTEXT, comment='細節說明')
+    admin_id = db.Column(db.Integer, db.ForeignKey('admin.id'), nullable=False, comment='管理員')
     delete_datetime = db.Column(db.DateTime, comment='刪除時間')
-    update_datetime = db.Column(db.DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
-    create_datetime = db.Column(db.DateTime, nullable=False, server_default=func.now())
-
-    orders = db.relationship('Order', backref='contest', lazy='dynamic')
 
 
-class Order(db.Model):
-    __bind_key__ = BIND_KEY
+""" 訂單 相關資料 """
+
+""" System Order """
+
+
+class Order(db.Model, ModelsTemplate):
+    """ Order 總表 """
     __tablename__ = 'order'
-    id = db.Column(db.Integer, primary_key=True)
-    contest_id = db.Column(db.Integer, db.ForeignKey('contest.id'), nullable=False, comment='賽池')
-    member_id = db.Column(db.Integer, db.ForeignKey('member.id'), index=True, comment='用戶')
-    lineup_id = db.Column(db.Integer, db.ForeignKey('lineup.id'), comment='陣容id')
-    status = db.Column(db.Integer, nullable=False, comment='訂單狀態', doc='11:空白注單/1:成功/2:結算/3:取消')
-    update_datetime = db.Column(db.DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
-    create_datetime = db.Column(db.DateTime, nullable=False, server_default=func.now())
-
-    fee = db.relationship('MemberFeeTransaction', backref='order', uselist=False, lazy='select')  # 唯一
-    prize = db.relationship('MemberPrizeTransaction', backref='order', uselist=False, lazy='select')  # 唯一
+    id = db.Column(db.String(30), primary_key=True, autoincrement=False, comment='項目order no')
+    type = db.Column(db.Integer, nullable=False, comment='Const.Order.Type')
+    member_id = db.Column(db.Integer, db.ForeignKey('member.id'), nullable=False, index=True, comment='會員')
 
 
-class MemberDepositTransaction(db.Model):
-    """ 用戶 上分 """
-    __bind_key__ = BIND_KEY
-    __tablename__ = 'member_deposit_transaction'
-    id = db.Column(db.Integer, primary_key=True)
-    no = db.Column(db.String(30), nullable=False, unique=True, index=True, comment='交易單號')
-    member_id = db.Column(db.Integer, db.ForeignKey('member.id'), nullable=False, index=True, comment='用戶')
+""" Task """
 
-    cash = db.Column(db.Integer, nullable=False, server_default=text('0'), comment='儲值金')
-    ticket = db.Column(db.Integer, nullable=False, server_default=text('0'), comment='金票')
 
+class TaskOrder(db.Model, ModelsTemplate):
+    """ 任務 訂單 """
+    __tablename__ = 'task_order'
+    no = db.Column(db.String(30), db.ForeignKey('order.id'), nullable=False, unique=True, index=True, comment='系統order單號')
+    member_id = db.Column(db.Integer, db.ForeignKey('member.id'), nullable=False, index=True, comment='會員')
+    type = db.Column(db.Integer, nullable=False, comment='Const.Task.Type')
     remark = db.Column(db.String(100), comment='備註')
-    update_datetime = db.Column(db.DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
-    create_datetime = db.Column(db.DateTime, nullable=False, server_default=func.now())
+    delete_datetime = db.Column(db.DateTime, comment='刪除時間')
+
+    prize = db.relationship('TaskPrizeTransaction', backref='task_order', uselist=False, lazy='select')
 
 
-class MemberFeeTransaction(db.Model):
-    """ 用戶 費用 """
-    __bind_key__ = BIND_KEY
-    __tablename__ = 'member_fee_transaction'
-    id = db.Column(db.Integer, primary_key=True)
-    no = db.Column(db.String(30), nullable=False, unique=True, index=True, comment='交易單號')
-    order_id = db.Column(db.Integer, db.ForeignKey('order.id'), nullable=False, index=True, comment='參賽訂單')
-    member_id = db.Column(db.Integer, db.ForeignKey('member.id'), nullable=False, index=True, comment='用戶')
+""" Reward """
 
-    cash = db.Column(db.Integer, nullable=False, server_default=text('0'), comment='儲值金')
-    ticket = db.Column(db.Integer, nullable=False, server_default=text('0'), comment='金票')
 
+class RewardOrder(db.Model, ModelsTemplate):
+    """ 模組獎勵 訂單 """
+    __tablename__ = 'reward_order'
+    no = db.Column(db.String(30), db.ForeignKey('order.id'), nullable=False, unique=True, index=True, comment='系統order單號')
+    member_id = db.Column(db.Integer, db.ForeignKey('member.id'), nullable=False, index=True, comment='會員')
+    reward_setting_id = db.Column(db.Integer, nullable=False)
+    condition = db.Column(db.Integer)
     remark = db.Column(db.String(100), comment='備註')
-    update_datetime = db.Column(db.DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
-    create_datetime = db.Column(db.DateTime, nullable=False, server_default=func.now())
+    delete_datetime = db.Column(db.DateTime, comment='刪除時間')
+
+    prize = db.relationship('RewardPrizeTransaction', backref='reward_order', uselist=False, lazy='select')
 
 
-class MemberPrizeTransaction(db.Model):
-    """ 用戶 獎金 """
-    __bind_key__ = BIND_KEY
-    __tablename__ = 'member_prize_transaction'
-    id = db.Column(db.Integer, primary_key=True)
-    no = db.Column(db.String(30), nullable=False, unique=True, index=True, comment='交易單號')
-    order_id = db.Column(db.Integer, db.ForeignKey('order.id'), nullable=False, index=True, comment='參賽訂單')
-    member_id = db.Column(db.Integer, db.ForeignKey('member.id'), nullable=False, index=True, comment='用戶')
+""" 交易 相關資料 """
 
-    cash = db.Column(db.Integer, nullable=False, server_default=text('0'), comment='儲值金')
-    ticket = db.Column(db.Integer, nullable=False, server_default=text('0'), comment='金票')
-
-    remark = db.Column(db.String(100), comment='備註')
-    update_datetime = db.Column(db.DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
-    create_datetime = db.Column(db.DateTime, nullable=False, server_default=func.now())
+""" Transaction log """
 
 
-class TransactionLog(db.Model):
-    """ SQL Trigger 交易紀錄 """
-    __bind_key__ = BIND_KEY
+class TransactionLog(db.Model, ModelsTemplate):
+    """ Sql trigger 交易紀錄 """
     __tablename__ = 'transaction_log'
-    id = db.Column(db.Integer, primary_key=True)
+    member_id = db.Column(db.Integer, db.ForeignKey('member.id'), index=True, comment='會員')
     no = db.Column(db.String(30), nullable=False, index=True, comment='交易單號')
-    cash = db.Column(db.Integer, nullable=False, server_default=text('0'), comment='儲值金')
-    ticket = db.Column(db.Integer, nullable=False, server_default=text('0'), comment='金票')
-
-    cash_balance = db.Column(db.Integer, comment='cash更新後餘額')
-    ticket_balance = db.Column(db.Integer, comment='ticket更新後餘額')
-
-    member_id = db.Column(db.Integer, db.ForeignKey('member.id'), index=True, comment='用戶')
-    contest_id = db.Column(db.Integer, db.ForeignKey('contest.id'), index=True, comment='賽池')
-    create_datetime = db.Column(db.DateTime, nullable=False, server_default=func.now())
+    cash = db.Column(db.Integer, comment='儲值金額度')
+    ticket = db.Column(db.JSON, comment='票券')
+    cash_balance = db.Column(db.Integer, nullable=False, comment='cash更新後餘額')
+    ticket_balance = db.Column(db.JSON, nullable=False, comment='ticket更新後餘額')
 
 
-""" System Setting """
+""" Task """
 
 
-class SystemSetting(db.Model):
-    __bind_key__ = BIND_KEY
-    __tablename__ = 'system_setting'
-    id = db.Column(db.Integer, primary_key=True)
-    type = db.Column(db.Integer, nullable=False, unique=True)
-    value = db.Column(db.String(200), nullable=False)
+class TaskPrizeTransaction(db.Model, ModelsTemplate):
+    """ 任務 派獎單 """
+    __tablename__ = 'task_prize_transaction'
+    member_id = db.Column(db.Integer, db.ForeignKey('member.id'), nullable=False, index=True, comment='會員')
+    order_id = db.Column(db.Integer, db.ForeignKey('task_order.id'), nullable=False, index=True, comment='訂單號')
+    no = db.Column(db.String(30), nullable=False, unique=True, index=True, comment='交易單號')
+    cash = db.Column(db.Integer, nullable=False, server_default=text('0'), comment='儲值金額度')
+    winnings = db.Column(db.Integer, nullable=False, server_default=text('0'), comment='彩金額度')
+    coin = db.Column(db.Integer, nullable=False, server_default=text('0'), comment='平台幣額度')
+    ticket = db.Column(db.JSON, comment='票券')
+    exp = db.Column(db.Integer, nullable=False, server_default=text('0'), comment='經驗值')
     remark = db.Column(db.String(100), comment='備註')
-    update_datetime = db.Column(db.DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
-    create_datetime = db.Column(db.DateTime, nullable=False, server_default=func.now(), comment='建立時間')
+    delete_datetime = db.Column(db.DateTime, comment='刪除時間')
 
 
-class SystemSettingLog(db.Model):
-    __bind_key__ = BIND_KEY
-    __tablename__ = 'system_setting_log'
-    id = db.Column(db.Integer, primary_key=True)
-    operator_id = db.Column(db.Integer, db.ForeignKey('admin.id'), nullable=False, comment='操作者')
-    type = db.Column(db.Integer, nullable=False)
-    value = db.Column(db.String(200), nullable=False)
+class RewardPrizeTransaction(db.Model, ModelsTemplate):
+    """ 模組獎勵 派獎單 """
+    __tablename__ = 'reward_prize_transaction'
+    member_id = db.Column(db.Integer, db.ForeignKey('member.id'), nullable=False, index=True, comment='會員')
+    order_id = db.Column(db.Integer, db.ForeignKey('reward_order.id'), nullable=False, index=True, comment='訂單號')
+    no = db.Column(db.String(30), nullable=False, unique=True, index=True, comment='交易單號')
+    cash = db.Column(db.Integer, nullable=False, server_default=text('0'), comment='儲值金額度')
+    ticket = db.Column(db.JSON, comment='票券')
     remark = db.Column(db.String(100), comment='備註')
-    update_datetime = db.Column(db.DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
-    create_datetime = db.Column(db.DateTime, nullable=False, server_default=func.now(), comment='建立時間')
+    delete_datetime = db.Column(db.DateTime, comment='刪除時間')
