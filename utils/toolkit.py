@@ -1,66 +1,42 @@
-import base64
-import hashlib
-import hmac
 import re
-from datetime import datetime, date, timedelta
+from datetime import date, datetime
 from distutils import version
 from functools import wraps
 
-import pytz
 from flask import request
 
 from app import config
-from common.const import Const
-from common.data_cache import DataCache
 from common.error_handler import ErrorCode, ValidationError
-
+from common.utils.data_cache import DataCache
 
 
 class Toolkit:
     _VERSION_TAG_LENGTH = 2
 
-    # _SDK_STRICT_METHODS = {
-    #     Const.SdkType.DEPOSIT,
-    #     Const.SdkType.MEMBER_LOGIN,
-    #     Const.SdkType.UPDATE_MEMBER,
-    #     Const.SdkType.GAME_RECORD,
-    # }
-
-    # agent + username = unique user
-    _SDK_PAYLOAD_KEYS = {
-        'method',
-        'agent',
-        'username',
+    _TIME_CONVERT_SETTING = {
+        'minutes': 60,
+        'hours': 3600,
+        'days': 86400,
     }
 
-    _REGEX_DATE = re.compile(r'^(\d{4})\-(0?[1-9]|1[012])\-(0?[1-9]|[12][0-9]|3[01])$')
+    _REGEX_DATE = re.compile(
+        r'^(\d{4})\-(0?[1-9]|1[012])\-(0?[1-9]|[12][0-9]|3[01])$')
 
-    # IST: India Standard Timezone
-    _IST_TIMEZONE_NAME = 'Asia/Kolkata'
-    IST_TIMEZONE = pytz.timezone(_IST_TIMEZONE_NAME)
-
-    _TIME_DIFF = timedelta(hours=2, minutes=30)
-
-    @staticmethod
-    def make_signature(payload, secret_key):
+    @classmethod
+    def convert_seconds(cls, seconds, unit='hours'):
         """
-        依照 key 做排序並且加密
-        :param payload:
-        :param secret_key:
-        :return:
+        :param seconds:
+        :type seconds: int
+        :param unit: {'days', 'hours', 'minutes'}
+        :type unit: str
         """
-        un_hashed_str = str()
-        for key, value in sorted(payload.items(), key=lambda x: x[0]):
-            if value is None:
-                continue
-            un_hashed_str = f'{un_hashed_str}{value}'
-        hashed_value = hmac.new(
-            secret_key.encode('utf-8'),
-            un_hashed_str.encode('utf-8'),
-            hashlib.sha1
-        ).digest()
-        hashed_str = base64.b64encode(hashed_value).decode('utf-8')
-        return hashed_str
+        if not isinstance(seconds, int):
+            raise TypeError('Invalid Type of param seconds')
+        if not isinstance(unit, str):
+            raise TypeError('Invalid Type of param unit')
+        if unit not in cls._TIME_CONVERT_SETTING:
+            raise ValueError('Invalid Value of param unit')
+        return seconds // cls._TIME_CONVERT_SETTING.get(unit)
 
     @classmethod
     def _validate_version(cls, client_version):
@@ -78,14 +54,17 @@ class Toolkit:
             if tag.isdigit():
                 continue
             raise ValidationError(ErrorCode.APP_VERSION_FORMAT_ERROR)
-        if version.StrictVersion(constrain) > version.StrictVersion(client_version):
+        if version.StrictVersion(constrain) > version.StrictVersion(
+                client_version):
             error_code = ErrorCode.APP_VERSION_IS_OUT_OF_DATE
             message = f'App Version: {client_version} Current Version: {constrain}'
             raise ValidationError(error_code=error_code, message=message)
 
     @classmethod
     def inspect_version(cls):
+
         def real_decorator(method, **kwargs):
+
             @wraps(method)
             def wrapper(*args, **kwargs):
                 # ================== 測試環境使用 ================== #
@@ -102,65 +81,49 @@ class Toolkit:
 
         return real_decorator
 
-    @staticmethod
-    def parse_pager(paginate):
-        pager = {
-            'page': paginate.page,
-            'pages': paginate.pages,
-            'per_page': paginate.per_page,
-            'total': paginate.total,
-        }
-        return pager
-
-    @staticmethod
-    def _get_request_user(data, is_sdk):
-        if is_sdk:
-            user = data.get('member')
-        else:
-            user = data.get('user')
-        if user:
-            return user
-        raise ValidationError(error_code=ErrorCode.DATA_ERROR, message='User Is Required')
+    @classmethod
+    def _get_request_payload(cls, payload, has_payload):
+        if not (has_payload and payload):
+            return str()
+        return cls._sort_key(data=payload)
 
     @staticmethod
     def _sort_key(data):
         return '|'.join(f'{key}={data[key]}' for key in sorted(data))
 
     @classmethod
-    def _get_request_args(cls, data, has_args):
+    def _get_request_args(cls, has_args):
         if not has_args:
             return str()
         return cls._sort_key(data=request.args)
 
-    @classmethod
-    def _get_request_payload(cls, payload, is_sdk, has_payload):
-        if not (has_payload or is_sdk):
-            return str()
-        if not payload:
-            return str()
-        # sdk_method = payload.get('method')
-        # if is_sdk and sdk_method in cls._SDK_STRICT_METHODS:
-        #     data = {k: payload.get(k) for k in cls._SDK_PAYLOAD_KEYS}
-        #     return cls._sort_key(data=data)
-        return cls._sort_key(data=payload)
+    @staticmethod
+    def _get_request_user(data):
+        user = data.get('user')
+        if user:
+            return user
+        raise ValidationError(error_code=ErrorCode.DATA_ERROR,
+                              message='User Is Required')
 
     @classmethod
-    def request_lock(cls, ex=None, is_sdk=False, has_args=False, has_payload=False, has_user=True):
+    def request_lock(cls,
+                     ex=None,
+                     has_args=False,
+                     has_payload=False,
+                     has_user=True):
+
         def real_decorator(method, **kwargs):
+
             @wraps(method)
             def wrapper(*args, **kwargs):
                 user = None
                 if has_user:
-                    user = cls._get_request_user(data=kwargs, is_sdk=is_sdk)
+                    user = cls._get_request_user(data=kwargs)
                 request_method = request.method
                 request_path = request.path
-                request_args = cls._get_request_args(
-                    data=request.args,
-                    has_args=has_args,
-                )
+                request_args = cls._get_request_args(has_args=has_args, )
                 request_payload = cls._get_request_payload(
                     payload=request.get_json(),
-                    is_sdk=is_sdk,
                     has_payload=has_payload,
                 )
                 request_lock = DataCache.get_request_lock(
@@ -173,7 +136,9 @@ class Toolkit:
                 )
                 if request_lock:
                     message = 'Request Frequency Too High'
-                    raise ValidationError(error_code=ErrorCode.INVALID_OPERATION, message=message)
+                    raise ValidationError(
+                        error_code=ErrorCode.INVALID_OPERATION,
+                        message=message)
                 DataCache.set_request_lock(
                     role=user.role if user else str(),
                     user_id=user.id if user else str(),
@@ -190,13 +155,19 @@ class Toolkit:
         return real_decorator
 
     @classmethod
-    def _parse_timezone(cls, timezone):
-        if not timezone:
-            return cls.IST_TIMEZONE
-        try:
-            return pytz.timezone(timezone)
-        except Exception as e:
-            raise ValidationError(error_code=ErrorCode.DATA_ERROR, message=f'Invalid TZ info: {timezone}')
+    def validate_date_format(cls, date_):
+        if not isinstance(date_, str):
+            message = f'Type required str, not {type(date_)}'
+            raise ValidationError(error_code=ErrorCode.DATA_ERROR,
+                                  message=message)
+        if not cls._REGEX_DATE.match(date_):
+            message = f'Format required YYYY-MM-DD, not {date_}'
+            raise ValidationError(error_code=ErrorCode.DATA_ERROR,
+                                  message=message)
+
+    @staticmethod
+    def format_datetime(datetime_, format_=None):
+        return datetime_.strftime(format_ or '%F %X')
 
     @staticmethod
     def _format_to_date(date_):
@@ -208,42 +179,6 @@ class Toolkit:
             return date_.date()
         else:
             raise TypeError(f'Invalid type of date_ {type(date_)}')
-
-    @classmethod
-    def to_timezone_interval(cls, date_a, date_b=None, timezone=None):
-        """
-        Convert CST+5:30(IST) DATE to GMT+8:00(Asia/Taipei) DATETIME to filter out data from GMT+8 database
-        if date_b is None return default one day interval
-        e.g.
-            _to_ist_interval(date_a='2022-01-01'))
-            return 2021-12-31 21:30:00, 2022-01-01 21:29:59
-
-            _to_ist_interval(date_a='2022-01-01', date_b='2022-01-05'))
-            return 2021-12-31 21:30:00, 2021-01-01 21:29:59.999999
-
-        :param date_a: parse date
-        :type date_a: [str, datetime, date]
-        :param date_b: second parse date
-        :type date_b: [str, datetime, date]
-        :param timezone: timezone
-        :type timezone: str
-        :rtype: datetime.datetime, datetime.datetime
-        :return: start_point, end_point
-        """
-        date_b = date_b or date_a
-        timezone = cls._parse_timezone(timezone=timezone)
-        start_date = cls._format_to_date(date_=date_a)
-        end_date = cls._format_to_date(date_=date_b)
-        if start_date > end_date:
-            """ reverse if the order went wrong """
-            start_date, end_date = end_date, start_date
-        start = datetime.combine(
-            start_date, datetime.min.time()
-        ).astimezone(timezone)
-        end = datetime.combine(
-            end_date, datetime.max.time()
-        ).astimezone(timezone)
-        return start, end
 
     @classmethod
     def parse_date(cls, date_, default=None, format_=None):
@@ -265,16 +200,24 @@ class Toolkit:
             raise Exception(message)
         if not cls._REGEX_DATE.match(date_):
             message = f'Format required {format_}, not {date_}'
-            raise ValidationError(error_code=ErrorCode.DATA_ERROR, message=message)
+            raise ValidationError(error_code=ErrorCode.DATA_ERROR,
+                                  message=message)
         return datetime.strptime(date_, format_).date()
 
     @classmethod
-    def from_ist_to_tst_timezone(cls, datetime_):
-        """ IST(INDIA) to TST(TAIWAN) """
-        if not isinstance(datetime_, datetime):
-            if isinstance(datetime_, str):
-                datetime_ = datetime.strptime(datetime_, '%Y-%m-%d %H:%M:%S')
-            else:
-                raise TypeError(f'Invalid type of datetime_ {type(datetime_)}')
-        tst_datetime = datetime_ + cls._TIME_DIFF
-        return tst_datetime
+    def get_payload(cls):
+        # 解析 post 的 request data
+        def real_decorator(method, **kwargs):
+
+            @wraps(method)
+            def wrapper(*args, **kwargs):
+                payload = request.form
+                if not payload:
+                    payload = request.get_json(force=True)
+                else:
+                    payload = dict(payload)
+                return method(*args, **kwargs, payload=payload)
+
+            return wrapper
+
+        return real_decorator

@@ -8,7 +8,7 @@ from app import config, db
 from common.const import Const
 from common.error_handler import ErrorCode, ValidationError, NotAuthorizedError, ForbiddenError, NotFoundError
 from common.models import Member, Admin
-from common.data_cache import DataCache
+from common.utils.data_cache import DataCache
 from common.utils.encrypt_tool import Encrypt, JWTCoder
 
 

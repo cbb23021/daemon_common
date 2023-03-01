@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${app_name}</title>
+        <style type="text/css">
+          html {
+            font-size: 16px;
+          }
+          html, body {
+            padding: 0;
+            margin: 0;
+          }
+          * {
+            box-sizing: border-box;
+            font-size: 1rem;
+          }
+          #wrapper {
+            text-align: center;
+            background-color: rgb(241, 241, 241);
+            padding: 2rem;
+          }
+          .inner {
+            width: 100%;
+            max-width: 768px;
+            margin: auto;
+            background-color: #fff;
+            border-radius: 5px;
+            overflow: hidden;
+            box-shadow: 2px 2px 15px rgba(0, 0, 0, 0.1);
+          }
+          #header {
+            background-color: #1915bf;
+            color: white;
+            padding: 1rem;
+          }
+          h1 {
+            font-size: 1.8rem;
+          }
+          h2 {
+            font-size: 1.4rem;
+          }
+          #header .container {
+            text-align: center;
+          }
+          #footer {
+            background-color: #1915bf;
+            padding: 1rem;
+            text-align: center;
+            color: white;
+          }
+          .container {
+            width: 100%;
+            max-width: 768px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+          }
+          .article {
+            color: #333;
+            text-align: left;
+            padding: 1rem;
+          }
+          .greeting {
+            font-size: 1rem;
+            color: #000;
+          }
+          .text-center {
+            text-align: center;
+            padding: 1rem;
+          }
+          .examination-btn {
+            display: inline-block;
+            border-radius: 8px;
+            padding: 1rem 2rem;
+            margin: 0 auto;
+            background-color: #7bda72;
+            color: #000 !important;
+            text-decoration: none;
+            text-align: center;
+          }
+          .divider {
+            border: 0;
+            border-bottom: 1px solid #eee;
+            margin: 1.5rem 0;
+          }
+        </style>
+    </head>
+    <body>
+        <div id="wrapper" style="font-family: ${font_families}, Arial, sans-serif;">
+          <div class="inner">
+            <div id="header">
+              <div class="container">
+                <h1>${app_name}</h1>
+              </div>
+            </div>
+            <div id="main">
+              <div class="article">
+                <div class="container">
+                  <p>We're happy you're here. Let's get your email address verified:</p>
+                  <p>Please use the OTP below within the next <strong>${expiration} hours</strong>:</p>
+                  <div class="text-center">
+                    <p>${code}</p>
+                  </div>
+                  <p><br/>${app_name} Team</p>
+                  <br>
+                </div>
+              </div>
+            </div>
+            <div id="footer">
+              <div class="container">
+                <p>©${current_year} ${app_name}. All rights reserved.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+    </body>
+</html>
+
