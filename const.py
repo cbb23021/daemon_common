@@ -103,25 +103,114 @@ class _ConstBase:
 class Const:
 
     class RoleType(_ConstBase):
-        OWNER = 11  # 系統擁有者
-        MAINTAINER = 12  # 系統維護人員
-        MERCHANT = 13  # 遊戲管理員
+        OWNER = 11  # 超級管理員(所有權限)
+        MAINTAINER = 12  # 管理員(除創建管理員外 所有權限)
+        OPERATOR = 13  # 操作員(運營/審核/封控 權限)
+        REPORTER = 14  # 客服員(僅有GET權限+客服)
+        MARKETER = 15  # 營銷員(僅有GET權限)
 
-        MEMBER = 21  # 玩家
+        MEMBER = 21  # 常規玩家(前台註冊)
+        SPECIAL_MEMBER = 22  # 特殊會員(後台建立)
+        PROMOTE_MEMBER = 23  # 推廣會員(不可遊玩)
 
     class GroupType(RoleType):
         ADMIN = 1  # 管理員
         USER = 2  # 用戶
 
-        # SYSTEM = 3  # 系統(未使用)
-
         @classmethod
         def get_roles(cls, type_):
             if type_ == cls.ADMIN:
-                return {cls.OWNER, cls.MAINTAINER, cls.MERCHANT}
+                return {
+                    cls.OWNER, cls.MAINTAINER, cls.OPERATOR, cls.REPORTER,
+                    cls.MARKETER
+                }
             if type_ == cls.USER:
-                return {cls.MEMBER}
+                return {cls.MEMBER, cls.SPECIAL_MEMBER, cls.PROMOTE_MEMBER}
             raise ValueError(f'Invalid type of group: {type_}')
+
+    class AssetType(_ConstBase):
+        CASH = 1
+        TICKET = 2
+
+    class WalletType(_ConstBase):
+        CASH = 1
+        TICKET = 2
+
+    class VerificationSystem:
+        # 需要在5分鐘內輸入OTP
+        EMAIL_OTP_EXPIRATION = 5 * 60
+        # 在10分鐘內，最多嘗試5次驗證
+        EMAIL_OTP_RETRY_INTERVAL = 10 * 60
+        EMAIL_OTP_ATTEMPT_MAXIMUM = 5
+        # 需要在驗證通過後10分鐘內完成註冊
+        VERIFIED_EMAIL_EXPIRATION = 10 * 60
+
+        RESET_PASSWORD_RETRY_INTERVAL = 3 * 60
+        RESET_PASSWORD_ATTEMPT_MAXIMUM = 1
+
+    class Task:
+
+        class Type(_ConstBase):
+            REGISTER = 1
+            GAME = 2
+
+    class Transaction:
+        NUMBER_LENGTH = '11'  # 交易單號 數字部分位數
+
+        class Category(_ConstBase):
+            EARNED = 'earned'
+            USED = 'used'
+
+        class Type(_ConstBase):
+            # TASK
+            TASK_PRIZE = 'TAPR'  # TAsk PRize
+
+            # REWARD
+            REWARD_PRIZE = 'RWPR'  # ReWard PRize
+
+    class SystemInfoType(_ConstBase):
+        ABOUT_US = 1
+        FAIR_PLAY_VIOLATION = 2
+        LEGALITIES = 3
+        TERMS_AND_CONDITIONS = 4
+        PRIVACY_POLICY = 5
+        REFUND_POLICY = 6
+        CONTACT_US = 7
+        FAQ = 8
+
+    class State(_ConstBase):
+        ANDHRA_PRADESH = 1
+        ARUNACHAL_PRADESH = 2
+        BIHAR = 3
+        CHHATTISGARH = 4
+        GOA = 5
+        GUJARAT = 6
+        HARYANA = 7
+        HIMACHAL_PRADESH = 8
+        JHARKHAND = 9
+        KARNATAKA = 10
+        KERALA = 11
+        MADHYA_PRADESH = 12
+        MAHARASHTRA = 13
+        MANIPUR = 14
+        MEGHALAYA = 15
+        MIZORAM = 16
+        PUNJAB = 17
+        RAJASTHAN = 18
+        SIKKIM = 19
+        TAMIL_NADU = 20
+        TRIPURA = 21
+        UTTAR_PRADESH = 22
+        UTTARAKHAND = 23
+        WEST_BENGAL = 24
+        JAMMU = 25
+        KASHMIR = 26
+
+    class Order:
+
+        class Type(_ConstBase):
+            TASK = 1
+            REWARD = 2
 
     class MethodType(_ConstBase):
         GET = 1
@@ -129,21 +218,13 @@ class Const:
         PUT = 3
         DELETE = 4
 
-    class SettleType(_ConstBase):
-        ORDINAL = 1
-        PERCENTAGE = 2
+    class AddressType(_ConstBase):
+        WHITELIST = 1
+        BLACKLIST = 2
 
-    class OrderType(_ConstBase):
-        PENDING = 11
-        SUCCEED = 1
-        CLOSED = 2
-        CANCELED = 3
-
-    class Transaction:
-        FEE = 'MBFE'  # MemBer FEe 費用
-        PRIZE = 'MBPZ'  # MemBer PriZe 獎金
-
-    class ContestStatus:
-        CREATED = 1
-        ACTIVATED = 2
-        CANCELED = 3
+    class RewardType(_ConstBase):
+        REGISTER = 1
+        FIRST_DEPOSIT = 2
+        DEPOSIT = 3
+        JOIN_CONTEST = 4
+        CUSTOM = 5

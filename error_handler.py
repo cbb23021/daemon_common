@@ -100,8 +100,8 @@ class ErrorCode:
     PHONE_NOT_BOUND = 9008  # 手機號碼未綁定
     PHONE_NOT_VERIFIED = 9009  # 手機號碼未驗證
     PHONE_HAS_BEEN_VERIFIED = 9010  # 手機已驗證過
-    EMAIL_HAS_BEEN_VERIFIED = 9011  # 信箱已驗證過
-    INVALID_AADHAAR = 9012  # AADHAAR 格式錯誤
+    EMAIL_NOT_VERIFIED = 9011  # 信箱未驗證過
+    EMAIL_HAS_BEEN_VERIFIED = 9012  # 信箱已驗證過
 
     # ===== deposit ===== #
     TICKET_NUMBER_IS_EXIST = 9200  # 商戶單號已經存在
