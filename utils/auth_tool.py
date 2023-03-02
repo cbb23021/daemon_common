@@ -13,9 +13,11 @@ from common.utils.encrypt_tool import Encrypt, JWTCoder
 
 
 class AuthTool:
+    _ADMIN_PREFIX = 'ADMIN'
 
     _SECRET_MAP = {
          'ADMINONLY': 'admin',
+         'MCONLY': 'mc',
     }
 
     _VALID_SECRET_ENVIRONMENT = {
@@ -49,13 +51,13 @@ class AuthTool:
             raise ForbiddenError(error_code=ErrorCode.USER_IS_BLOCKED, message='User Has Been Blocked')
 
     @classmethod
-    def _get_identity(cls, phone, username, password, group):
+    def _get_identity(cls, email, username, password, group):
         if group not in {Const.GroupType.ADMIN, Const.GroupType.USER}:
             raise ValidationError(error_code=ErrorCode.INVALID_OPERATION, message=f'Invalid Group Type: {group}')
         if group == Const.GroupType.ADMIN and username:
             user = Admin.query.filter_by(username=username).first()
-        elif group == Const.GroupType.USER and phone:
-            user = Member.query.filter_by(phone=phone).first()
+        elif group == Const.GroupType.USER and email:
+            user = Member.query.filter_by(email=email).first()
         else:
             raise ValidationError(error_code=ErrorCode.INVALID_OPERATION, message=f'Required phone or username')
         cls._validate_identity(user=user, password=password)
@@ -93,35 +95,33 @@ class AuthTool:
             raise ForbiddenError(error_code=ErrorCode.INVALID_IP_ADDRESS)
 
     @classmethod
-    def member_login(cls, phone, password):
+    def member_login(cls, email, password):
         cls._inspect_suspend_address()
-        attempt = DataCache.get_member_auth_lock(phone=phone)
+        attempt = DataCache.get_member_auth_lock(email=email)
         if attempt and int(attempt) > cls._AUTH_ATTEMPT_LIMIT:
             raise ValidationError(error_code=ErrorCode.INVALID_OPERATION, message=f'Request Login Repeatedly')
         user = cls._get_identity(
-            phone=phone,
+            email=email,
             username=None,
             password=password,
             group=Const.GroupType.USER,
         )
         data = {
             'id': user.id,
-            'phone': user.phone,
-            'username': user.username,
             'email': user.email,
+            'username': user.username,
             'role': user.role,
         }
         result = {
-            'phone': user.phone,
-            'username': user.username,
             'email': user.email,
+            'username': user.username,
             'token': JWTCoder.get_access_token(**data),
             'refresh_token': JWTCoder.get_refresh_token(**data),
             'role': user.role,
         }
         cls._update_user_login_detail(user=user)
         cls._commit()
-        DataCache.increase_member_auth_lock(phone=phone)
+        DataCache.increase_member_auth_lock(email=email)
         return result
 
     @classmethod
@@ -158,24 +158,23 @@ class AuthTool:
         data = JWTCoder.decode_refresh_token(token=refresh_token)
         id_ = data.get('id')
         role = data.get('role')
-        phone = data.get('phone')
-        attempt = DataCache.get_member_auth_lock(phone=phone)
+        email = data.get('email')
+        attempt = DataCache.get_member_auth_lock(email=email)
         if attempt and int(attempt) > cls._AUTH_ATTEMPT_LIMIT:
             raise ValidationError(error_code=ErrorCode.INVALID_OPERATION, message=f'Request Login Repeatedly')
-        if not (id_ and phone and role):
+        if not (id_ and email and role):
             raise ValidationError(error_code=ErrorCode.INVALID_REFRESH_TOKEN)
-        user = Member.query.filter_by(id=id_, phone=phone, role=role).first()
+        user = Member.query.filter_by(id=id_, email=email, role=role).first()
         cls._validate_user(user=user, update_address=update_address)
         access_token = JWTCoder.get_access_token(
             id=user.id,
-            phone=user.phone,
-            username=user.username,
             email=user.email,
+            username=user.username,
             role=user.role,
         )
         cls._update_user_login_detail(user=user)
         cls._commit()
-        DataCache.increase_member_auth_lock(phone=phone)
+        DataCache.increase_member_auth_lock(email=email)
         return {'token': access_token}
 
     # ----------------------------- Admin Auth ----------------------------- #
@@ -183,7 +182,7 @@ class AuthTool:
     def admin_login(cls, username, password):
         cls._inspect_allow_address()
         admin = cls._get_identity(
-            phone=None,
+            email=None,
             username=username,
             password=password,
             group=Const.GroupType.ADMIN,
@@ -250,7 +249,7 @@ class AuthTool:
                     raise NotAuthorizedError(error_code=ErrorCode.ACCESS_TOKEN_MISSING)
                 token_content = JWTCoder.decode_access_token(token=token)
                 id_ = token_content.get('id')
-                phone = token_content.get('phone')
+                email = token_content.get('email')
                 username = token_content.get('username')
                 role = token_content.get('role')
 
@@ -258,7 +257,7 @@ class AuthTool:
                 authorized_roles = {Const.RoleType.OWNER}
                 for constrain in roles:
                     """ 拓展群組下角色 """
-                    if constrain in Const.GroupType.get_elements():
+                    if constrain in Const.GroupType.to_dict(reverse=True):
                         authorized_roles.update(Const.GroupType.get_roles(constrain))
                     else:
                         authorized_roles.add(constrain)
@@ -270,9 +269,9 @@ class AuthTool:
                 if role in cls._ADMIN_TYPES and id_ and role and username:
                     """ Admin login by username """
                     user = Admin.query.filter_by(id=id_, username=username, role=role).first()
-                elif role in cls._MEMBER_TYPES and id_ and role and phone:
-                    """ Member login by phone """
-                    user = Member.query.filter_by(id=id_, phone=phone, role=role).first()
+                elif role in cls._MEMBER_TYPES and id_ and role and email:
+                    """ Member login by email """
+                    user = Member.query.filter_by(id=id_, email=email, role=role).first()
                 else:
                     raise NotAuthorizedError(error_code=ErrorCode.INVALID_ACCESS_TOKEN)
                 cls._validate_user(user=user, update_address=update_address)

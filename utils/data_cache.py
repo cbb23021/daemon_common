@@ -33,7 +33,7 @@ class DataCache:
     def del_key(key):
         rs.delete(key)
 
-    # ------------------------- [ Address Control ] -------------------------- #
+    # ------------------------ [ Address Control ] -------------------------- #
 
     @classmethod
     def get_whitelist(cls, force_update=False):
@@ -59,7 +59,7 @@ class DataCache:
             return data
         return json.loads(value)
 
-    # ------------------------- [ Email Verification ] -------------------------- #
+    # --------------------- [ Email Verification ] -------------------------- #
 
     # email otp
     @staticmethod
@@ -109,57 +109,24 @@ class DataCache:
         key = RedisKey.get_verified_email_key(email=email)
         rs.delete(key)
 
-    # """ Phone OTP """
+    """ AUTH LOCK """
 
-    # @staticmethod
-    # def set_phone_otp(phone, otp):
-    #     expiration = Const.VerificationSystem.PHONE_OTP_EXPIRATION
-    #     key = RedisKey.get_phone_otp_key(phone=phone)
-    #     rs.set(key, value=otp, ex=expiration)
+    @classmethod
+    def increase_member_auth_lock(cls, email):
+        key = RedisKey.get_member_auth_lock_key(email=email)
+        rs.incr(key, amount=1)
+        ttl = rs.ttl(key)
+        expiration = ttl if ttl > 0 else cls._EXPIRATION_MEMBER_AUTH_INTERVAL
+        rs.expire(key, time=expiration)
 
-    # @staticmethod
-    # def get_phone_otp(phone):
-    #     key = RedisKey.get_phone_otp_key(phone=phone)
-    #     return rs.get(key)
-
-    # @staticmethod
-    # def del_phone_otp(phone):
-    #     key = RedisKey.get_phone_otp_key(phone=phone)
-    #     rs.delete(key)
-
-    # """ Phone OTP Request Attempt """
-
-    # @staticmethod
-    # def increase_phone_otp_request_attempt(phone):
-    #     key = RedisKey.get_phone_otp_request_attempt_key(phone=phone)
-    #     ttl = rs.ttl(key)
-    #     expiration = ttl if ttl > 10 else Const.VerificationSystem.PHONE_OTP_RETRY_INTERVAL
-    #     rs.incr(key, amount=1)
-    #     rs.expire(key, time=expiration)
-
-    # @staticmethod
-    # def get_phone_otp_request_attempt(phone):
-    #     key = RedisKey.get_phone_otp_request_attempt_key(phone=phone)
-    #     value = rs.get(key)
-    #     return int(value) if value else None
-
-    # """ Phone Verification """
-
-    # @staticmethod
-    # def set_verified_phone(phone, otp):
-    #     expiration = Const.VerificationSystem.VERIFIED_PHONE_EXPIRATION
-    #     key = RedisKey.get_verified_phone_key(phone=phone)
-    #     rs.set(key, value=otp, ex=expiration)
-
-    # @staticmethod
-    # def get_verified_phone(phone):
-    #     key = RedisKey.get_verified_phone_key(phone=phone)
-    #     return rs.get(key)
-
-    # @staticmethod
-    # def del_verified_phone(phone):
-    #     key = RedisKey.get_verified_phone_key(phone=phone)
-    #     rs.delete(key)
+    @staticmethod
+    def get_member_auth_lock(email):
+        """
+        to block the member who try to
+        login or refresh over 5 times in 5 seconds
+        """
+        key = RedisKey.get_member_auth_lock_key(email=email)
+        return rs.get(key)
 
     """ TRANSACTION """
 
@@ -168,78 +135,6 @@ class DataCache:
         """ 於 entry point 呼叫 重置 transaction Lock """
         for key in rs.scan_iter(f'*transaction*'):
             cls.del_key(key=key)
-
-    """ FANTASYEE PLAYING EXPERIENCE """
-
-    @staticmethod
-    def set_fantasyee_member_playing_experience(username, data):
-        expiration = Const.FantasyeeData.PLAYING_EXPERIENCE_EXPIRATION
-        key = RedisKey.get_fantasyee_member_playing_experience_key(
-            username=username)
-        rs.set(key, value=data, ex=expiration)
-
-    @staticmethod
-    def get_fantasyee_member_playing_experience(username):
-        key = RedisKey.get_fantasyee_member_playing_experience_key(
-            username=username)
-        return rs.get(key)
-
-    """ CHAT """
-
-    @staticmethod
-    def set_unread_amount(room_name, amount):
-        key = RedisKey.get_room_unread_amount_key(room_name=room_name)
-        rs.set(key, value=amount, ex=60 * 60 * 24 * 3)
-
-    @staticmethod
-    def get_unread_amount(room_name):
-        key = RedisKey.get_room_unread_amount_key(room_name=room_name)
-        return rs.get(key)
-
-    @staticmethod
-    def increase_unread_amount(room_name):
-        key = RedisKey.get_room_unread_amount_key(room_name=room_name)
-        rs.incr(key)
-
-    @staticmethod
-    def decrease_unread_amount(room_name):
-        key = RedisKey.get_room_unread_amount_key(room_name=room_name)
-        rs.decr(key)
-
-    @staticmethod
-    def pop_expired_room():
-        key = RedisKey.get_expired_room_key()
-        return rs.lpop(key)
-
-    @staticmethod
-    def push_expired_room(room_id):
-        key = RedisKey.get_expired_room_key()
-        rs.rpush(key, room_id)
-
-    @staticmethod
-    def get_all_expired_room():
-        key = 'expired:room'
-        rooms = rs.lrange(key, 0, -1)
-        return rooms
-
-    """ AUTH LOCK """
-
-    @classmethod
-    def increase_member_auth_lock(cls, phone):
-        key = RedisKey.get_member_auth_lock_key(phone=phone)
-        rs.incr(key, amount=1)
-        ttl = rs.ttl(key)
-        expiration = ttl if ttl > 0 else cls._EXPIRATION_MEMBER_AUTH_INTERVAL
-        rs.expire(key, time=expiration)
-
-    @staticmethod
-    def get_member_auth_lock(phone):
-        """
-        to block the member who try to
-        login or refresh over 5 times in 5 seconds
-        """
-        key = RedisKey.get_member_auth_lock_key(phone=phone)
-        return rs.get(key)
 
     """ REQUEST LOCK """
 
@@ -277,95 +172,6 @@ class DataCache:
         )
         return rs.get(key)
 
-    @classmethod
-    def set_player_transfer_lock(cls, user_id):
-        key = RedisKey.transfer_lock(user_id=user_id)
-        value = str(datetime.now())
-        rs.set(key, value=value, ex=cls._TRANSFER_LOCK_INTERVAL)
-
-    @staticmethod
-    def get_player_transfer_lock(user_id):
-        key = RedisKey.transfer_lock(user_id=user_id)
-        return rs.get(key)
-
-    @staticmethod
-    def del_player_transfer_lock(user_id):
-        key = RedisKey.transfer_lock(user_id=user_id)
-        rs.delete(key)
-
-    @classmethod
-    def set_player_return_lock(cls, user_id):
-        key = RedisKey.return_lock(user_id=user_id)
-        value = str(datetime.now())
-        rs.set(key, value=value, ex=cls._RETURN_LOCK_INTERVAL)
-
-    @staticmethod
-    def get_player_return_lock(user_id):
-        key = RedisKey.return_lock(user_id=user_id)
-        return rs.get(key)
-
-    @staticmethod
-    def del_player_return_lock(user_id):
-        key = RedisKey.return_lock(user_id=user_id)
-        rs.delete(key)
-
-    """ MEMBER ACTIVITY """
-
-    @classmethod
-    def set_member_login_activity(cls, user_id, login_datetime, ex=None):
-        """
-            key: 印度日期
-            value: 台灣時間
-        """
-        datetime_ = datetime.strptime(
-            login_datetime, '%Y-%m-%d %H:%M:%S').astimezone(cls._IST_TIMEZONE)
-        date_str = datetime_.date().strftime('%Y-%m-%d')
-        name = RedisKey.get_member_login_record_key(date_=date_str)
-        key = user_id
-        value = login_datetime
-        rs.hset(name=name, key=key, value=value)
-        if rs.ttl(name) < 0:
-            """ without expiration(first time) """
-            ex = ex if ex is not None else cls._EXPIRATION_MEMBER_LOGIN_RECORD
-            rs.expire(name, time=ex)
-
-    @staticmethod
-    def get_member_login_activity(date_, user_id):
-        date_ = date_.strftime('%Y-%m-%d')
-        name = RedisKey.get_member_login_record_key(date_=date_)
-        key = user_id
-        data = rs.hget(name=name, key=key)
-        return datetime.strptime(data, '%Y-%m-%d %H:%M:%S') if data else None
-
-    @staticmethod
-    def get_all_member_login_activity(date_):
-        date_ = date_.strftime('%Y-%m-%d')
-        name = RedisKey.get_member_login_record_key(date_=date_)
-        data = rs.hgetall(name=name)
-        return {
-            k: datetime.strptime(v, '%Y-%m-%d %H:%M:%S')
-            for k, v in data.items()
-        }
-
-    @staticmethod
-    def get_length_member_login_activity(date_):
-        date_ = date_.strftime('%Y-%m-%d')
-        name = RedisKey.get_member_login_record_key(date_=date_)
-        return rs.hlen(name)
-
-    """ SMS CALLBACK STATUS (PHONE) """
-
-    @classmethod
-    def set_twofactor_callback_sms_status(cls, phone, status):
-        expiration = cls._EXPIRATION_TWOFACTOR_CALLBACK_STATUS
-        key = RedisKey.get_twofactor_callback_sms_status_key(phone=phone)
-        rs.set(key, value=status, ex=expiration)
-
-    @staticmethod
-    def get_twofactor_callback_sms_status(phone):
-        key = RedisKey.get_twofactor_callback_sms_status_key(phone=phone)
-        return rs.get(key)
-
     """ Lock """
 
     @classmethod
@@ -384,44 +190,6 @@ class DataCache:
         key = RedisKey.get_game_playing_lock_key(user_id=user_id)
         rs.delete(key)
 
-    """ Exp """
-
-    @classmethod
-    def increase_member_month_exp(cls, year_month, member_id, exp, ex=None):
-        ex = ex if ex is not None else cls._EXPIRATION_MEMBER_MONTH_EXP
-        key = RedisKey.month_member_exp(
-            year_month=year_month,
-            member_id=member_id,
-        )
-        rs.incr(key, amount=exp)
-        rs.expire(key, time=ex)
-
-    @classmethod
-    def get_member_month_exp(cls, year_month, member_id):
-        """ need init by ExperienceTool.init_and_get_member_month_exp """
-        key = RedisKey.month_member_exp(
-            year_month=year_month,
-            member_id=member_id,
-        )
-        return rs.get(key) if rs.get(key) else 0
-
-    """ Vip Upgrade Notification """
-
-    @classmethod
-    def set_member_upgrade_notification(cls, member_id, new_level):
-        key = RedisKey.member_upgrade(member_id=member_id)
-        rs.set(key, value=new_level)
-
-    @staticmethod
-    def get_member_upgrade_notification(member_id):
-        key = RedisKey.member_upgrade(member_id=member_id)
-        return rs.get(key)
-
-    @staticmethod
-    def del_member_upgrade_notification(member_id):
-        key = RedisKey.member_upgrade(member_id=member_id)
-        rs.delete(key)
-
     """ Reward Prize Total """
 
     @staticmethod
@@ -433,21 +201,3 @@ class DataCache:
     def increase_reward_prize_total(setting_id, amount):
         key = RedisKey.reward_prize_total(setting_id=setting_id)
         rs.incr(key, amount=amount)
-
-    """ User List """
-
-    @staticmethod
-    def get_export_user_list(role, keyword, sort_by, is_desc):
-        key = RedisKey.export_user_list(role=role,
-                                        keyword=keyword,
-                                        sort_by=sort_by,
-                                        is_desc=is_desc)
-        return rs_f_decode.get(key) or None
-
-    @classmethod
-    def set_export_user_list(cls, value, role, keyword, sort_by, is_desc):
-        key = RedisKey.export_user_list(role=role,
-                                        keyword=keyword,
-                                        sort_by=sort_by,
-                                        is_desc=is_desc)
-        rs.set(key, value=value, ex=cls._USER_REPORT_PERIOD)

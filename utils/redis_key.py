@@ -26,54 +26,26 @@ class RedisKey:
     def get_verified_email_key(email):
         return f'verify_email:verified:{email}'
 
+    # ------------------------- [ auth ] -------------------------- #
+
+    @staticmethod
+    def get_member_auth_lock_key(email):
+        return f'member:{email}:auth_lock'
+
+    """ [email] RESET PASSWORD """
+
+    @staticmethod
+    def get_verified_reset_password_email_code_key(email):
+        return f'verified_reset_password_email:{email}'
+
+    @staticmethod
+    def get_reset_password_attempt_key(email):
+        return f'reset_password:attempt:{email}'
+
     # others
     @staticmethod
     def transaction(trans_no):
         return f'transaction:{trans_no}'
-
-    @staticmethod
-    def get_fantasyee_member_playing_experience_key(username):
-        return f'playing_experience:{username}'
-
-    @staticmethod
-    def get_room_message_key(room_id):
-        return f'room_message:{room_id}'
-
-    @staticmethod
-    def get_room_unread_amount_key(room_name):
-        return f'unread:{room_name}'
-
-    @staticmethod
-    def get_expired_room_key():
-        return 'expired:room'
-
-    @staticmethod
-    def get_member_auth_lock_key(phone):
-        return f'member:{phone}:auth_lock'
-
-    # """ PHONE """
-
-    # @staticmethod
-    # def get_phone_otp_key(phone):
-    #     return f'phone:{phone}:otp'
-
-    # @staticmethod
-    # def get_phone_otp_request_attempt_key(phone):
-    #     return f'phone:{phone}:otp:request-attempt'
-
-    # @staticmethod
-    # def get_verified_phone_key(phone):
-    #     return f'verified:phone:{phone}'
-
-    """ [PHONE] RESET PASSWORD """
-
-    @staticmethod
-    def get_verified_reset_password_phone_code_key(phone):
-        return f'verified_reset_password_phone:{phone}'
-
-    @staticmethod
-    def get_reset_password_attempt_key(phone):
-        return f'reset_password:attempt:{phone}'
 
     """ [LOCK] API REQUEST """
 
@@ -86,41 +58,17 @@ class RedisKey:
             f'lock')
         return key
 
-    @staticmethod
-    def transfer_lock(user_id):
-        return f'user:{user_id}:transfer-lock'
-
-    @staticmethod
-    def return_lock(user_id):
-        return f'user:{user_id}:return-lock'
-
     """ LOGIN RECORD """
 
     @staticmethod
     def get_member_login_record_key(date_):
         return f'member_login_record:date:{date_}'
 
-    """ SMS CALLBACK STATUS """
-
-    @staticmethod
-    def get_twofactor_callback_sms_status_key(phone):
-        return f'callback:twofactor:phone:{phone}:status'
-
     # ------------------------- [ Lock ] -------------------------- #
 
     @staticmethod
     def get_game_playing_lock_key(user_id):
         return f'game:playing:user:{user_id}:lock'
-
-    # ------------------------- [ Exp ] -------------------------- #
-    @staticmethod
-    def month_member_exp(year_month, member_id):
-        return f'year_month:{year_month}:member:{member_id}:exp'
-
-    # ------------------------- [ Vip Upgrade Notification ] -------------------------- #
-    @staticmethod
-    def member_upgrade(member_id):
-        return f'member:{member_id}:upgrade'
 
     # ------------------------- [ Reward Prize ] -------------------------- #
     @staticmethod
