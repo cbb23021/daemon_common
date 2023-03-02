@@ -241,7 +241,7 @@ class LottoFeeTransaction(db.Model, ModelsTemplate):
     """ 費用單 """
     __tablename__ = 'lotto_fee_transaction'
     member_id = db.Column(db.Integer, db.ForeignKey('member.id'), nullable=False, index=True, comment='會員')
-    order_id = db.Column(db.Integer, db.ForeignKey('daily_bonus_order.id'), nullable=False, index=True, comment='訂單')
+    order_id = db.Column(db.Integer, db.ForeignKey('lotto_order.id'), nullable=False, index=True, comment='訂單')
     no = db.Column(db.String(30), nullable=False, unique=True, index=True, comment='交易單號')
     cash = db.Column(db.Integer, nullable=False, server_default=text('0'), comment='儲值金額度')
     ticket = db.Column(db.JSON, comment='票券')
