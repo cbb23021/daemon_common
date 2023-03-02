@@ -1,3 +1,5 @@
+from sqlalchemy.orm.attributes import flag_modified
+
 from common.const import Const
 from common.error_handler import ErrorCode, ValidationError
 from common.models import TaskOrder, db
