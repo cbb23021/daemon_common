@@ -51,6 +51,10 @@ class RedisKey:
     def used_order_data(draw_id):
         return f'{draw_id}-USED'
 
+    @staticmethod
+    def active_draw_ids():
+        return 'active_draw_ids'
+
     # others
     @staticmethod
     def transaction(trans_no):

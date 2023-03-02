@@ -164,9 +164,10 @@ class Const:
         class Type(_ConstBase):
             # TASK
             TASK_PRIZE = 'TAPR'  # TAsk PRize
-
             # REWARD
             REWARD_PRIZE = 'RWPR'  # ReWard PRize
+            # Lotto
+            LOTTO_FEE = 'LTFE'
 
     class SystemInfoType(_ConstBase):
         ABOUT_US = 1
@@ -211,6 +212,7 @@ class Const:
         class Type(_ConstBase):
             TASK = 1
             REWARD = 2
+            LOTTO = 3
 
     class MethodType(_ConstBase):
         GET = 1
@@ -228,3 +230,8 @@ class Const:
         DEPOSIT = 3
         JOIN_CONTEST = 4
         CUSTOM = 5
+
+    class DrawStatus:
+        ACTIVATED = 1
+        CANCELED = 2
+        FINISHED = 3

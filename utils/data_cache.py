@@ -128,7 +128,7 @@ class DataCache:
         key = RedisKey.get_member_auth_lock_key(email=email)
         return rs.get(key)
 
-    # ====== order ====
+    # ====== lotto order ====
 
     # join 用
     @staticmethod
@@ -137,9 +137,9 @@ class DataCache:
         return rs.rpop(key)
 
     @staticmethod
-    def push_order_data_to_used(draw_id, order_id, member_id, cash, ticket, join_dt, remark):
+    def push_order_data_to_used(draw_id, order_id, member_id, cash, ticket, number, join_dt, remark):
         key = RedisKey.used_order_data(draw_id=draw_id)
-        value = f'{order_id}:{member_id}:{cash}:{ticket}:{join_dt}:{remark}'
+        value = f'{order_id}:{member_id}:{cash}:{ticket}:{number}:{join_dt}:{remark}'
         rs.lpush(key, value)
 
     # daemon 用
@@ -153,12 +153,23 @@ class DataCache:
         key = RedisKey.used_order_data(draw_id)
         return rs.blpop(key, wait_time)
 
+    # active ids
+    @staticmethod
+    def get_active_draw_id(wait_time=10):
+        key = RedisKey.active_draw_ids()
+        return rs.blpop(key, wait_time)
+
+    @staticmethod
+    def push_active_draw_ids(draw_ids):
+        key = RedisKey.active_draw_ids()
+        return rs.lpush(key, *draw_ids)
+
     """ TRANSACTION """
 
     @classmethod
     def flush_transaction(cls):
         """ 於 entry point 呼叫 重置 transaction Lock """
-        for key in rs.scan_iter(f'*transaction*'):
+        for key in rs.scan_iter('*transaction*'):
             cls.del_key(key=key)
 
     """ REQUEST LOCK """

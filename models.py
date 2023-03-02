@@ -130,7 +130,7 @@ class Order(db.Model, ModelsTemplate):
     __tablename__ = 'order'
     id = db.Column(db.String(30), primary_key=True, autoincrement=False, comment='項目order no')
     type = db.Column(db.Integer, nullable=False, comment='Const.Order.Type')
-    member_id = db.Column(db.Integer, db.ForeignKey('member.id'), nullable=False, index=True, comment='會員')
+    member_id = db.Column(db.Integer, db.ForeignKey('member.id'), index=True, comment='會員')
 
 
 """ Task """
@@ -215,21 +215,23 @@ class LottoDraw(db.Model, ModelsTemplate):
     name = db.Column(db.String(30), comment='date number')
     period = db.Column(db.Integer, nullable=False, unique=True, index=True, comment='旗號')
     number = db.Column(db.JSON, nullable=False, comment='7 個號碼')
+    open_dt = db.Column(db.DateTime, comment='開獎時間')
+    status = db.Column(db.Integer, comment='狀態')
     fee = db.Column(db.Integer, comment='fee for join')
     size = db.Column(db.Integer, comment='maxium 最大投注人數')
+    settle_dt = db.Column(db.DateTime, comment='結算時間')
     remark = db.Column(db.String(100), comment='備註')
-    is_archive = db.Column(db.Boolean, server_default='0', comment='是否封存')
 
 class LottoOrder(db.Model, ModelsTemplate):
     """ 樂透 訂單 """
     __tablename__ = 'lotto_order'
     no = db.Column(db.String(30), db.ForeignKey('order.id'), nullable=False, unique=True, index=True, comment='系統order單號')
-    member_id = db.Column(db.Integer, db.ForeignKey('member.id'), nullable=False, index=True, comment='會員')
+    member_id = db.Column(db.Integer, db.ForeignKey('member.id'), index=True, comment='會員')
     type = db.Column(db.Integer, nullable=False, comment='Const.Task.Type')
-    number = db.Column(db.JSON, nullable=False, comment='7 個號碼')
+    number = db.Column(db.JSON, comment='7 個號碼')
     match = db.Column(db.Integer, comment='中獎數')
-    is_archive = db.Column(db.Boolean, server_default='0', comment='是否封存')
     remark = db.Column(db.String(100), comment='備註')
+    settle_dt = db.Column(db.DateTime, comment='結算時間')
     delete_dt = db.Column(db.DateTime, comment='刪除時間')
 
     prize = db.relationship('RewardPrizeTransaction', backref='lotto_order', uselist=False, lazy='select')

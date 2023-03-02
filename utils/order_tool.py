@@ -1,5 +1,5 @@
 from common.const import Const
-from common.models import Order, RewardOrder, TaskOrder, db
+from common.models import LottoOrder, Order, RewardOrder, TaskOrder, db
 from common.utils.encrypt_tool import KeyGenerator
 
 
@@ -19,7 +19,7 @@ class OrderTool:
             f'Reached Generate Order No Attempt Limit: {cls._ATTEMPT_LIMIT}')
 
     @classmethod
-    def _create_system_order(cls, _type, member_id):
+    def _create_system_order(cls, _type, member_id=None):
         no = cls._generate_order_no()
         data = {
             'id': no,
@@ -56,4 +56,14 @@ class OrderTool:
         }
         order = RewardOrder(**data)
         db.session.add(order)
+        return order
+
+    @classmethod
+    def create_lotto_order(cls, type_):
+        system_order = cls._create_system_order(_type=Const.Order.Type.LOTTO)
+        data = {
+            'no': system_order.id,
+            'type': type_,
+        }
+        order = LottoOrder(**data)
         return order
