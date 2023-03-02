@@ -42,6 +42,15 @@ class RedisKey:
     def get_reset_password_attempt_key(email):
         return f'reset_password:attempt:{email}'
 
+    # ---------------- [ draw ] ----------- #
+    @staticmethod
+    def wait_order_ids(draw_id):
+        return f'{draw_id}-WAIT'
+
+    @staticmethod
+    def used_order_data(draw_id):
+        return f'{draw_id}-USED'
+
     # others
     @staticmethod
     def transaction(trans_no):

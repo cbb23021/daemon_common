@@ -128,6 +128,31 @@ class DataCache:
         key = RedisKey.get_member_auth_lock_key(email=email)
         return rs.get(key)
 
+    # ====== order ====
+
+    # join 用
+    @staticmethod
+    def get_spare_order_id(draw_id):
+        key = RedisKey.wait_order_ids(draw_id=draw_id)
+        return rs.rpop(key)
+
+    @staticmethod
+    def push_order_data_to_used(draw_id, order_id, member_id, cash, ticket, join_dt, remark):
+        key = RedisKey.used_order_data(draw_id=draw_id)
+        value = f'{order_id}:{member_id}:{cash}:{ticket}:{join_dt}:{remark}'
+        rs.lpush(key, value)
+
+    # daemon 用
+    @staticmethod
+    def push_order_data_to_wait(draw_id, value):
+        key = RedisKey.wait_order_ids(draw_id)
+        return rs.rpush(key, *value)
+
+    @staticmethod
+    def get_used_order_data(draw_id, wait_time=10):
+        key = RedisKey.used_order_data(draw_id)
+        return rs.blpop(key, wait_time)
+
     """ TRANSACTION """
 
     @classmethod
