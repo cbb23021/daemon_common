@@ -108,8 +108,8 @@ class RewardSetting(db.Model, ModelsTemplate):
     __tablename__ = 'reward_setting'
     category = db.Column(db.Integer, nullable=False, comment='1:遊戲/')
     name = db.Column(db.String(100), nullable=False, comment='活動名稱')
-    start_datetime = db.Column(db.DateTime, nullable=False, comment='生效開始時間')
-    end_datetime = db.Column(db.DateTime, comment='生效結束時間')
+    start_dt = db.Column(db.DateTime, nullable=False, comment='生效開始時間')
+    end_dt = db.Column(db.DateTime, comment='生效結束時間')
     type = db.Column(db.Integer, comment='1:cash/2:ticket')
     fixed_amount = db.Column(db.Integer, comment='固定獎金/金額')
     min_amount = db.Column(db.Integer, comment='隨機獎金/最低金額')
@@ -117,7 +117,7 @@ class RewardSetting(db.Model, ModelsTemplate):
     amount_limit = db.Column(db.Integer, comment='頒發總獎金上限')
     detail = db.Column(MEDIUMTEXT, comment='細節說明')
     admin_id = db.Column(db.Integer, db.ForeignKey('admin.id'), nullable=False, comment='管理員')
-    delete_datetime = db.Column(db.DateTime, comment='刪除時間')
+    delete_dt = db.Column(db.DateTime, comment='刪除時間')
 
 
 """ 訂單 相關資料 """
@@ -143,7 +143,7 @@ class TaskOrder(db.Model, ModelsTemplate):
     member_id = db.Column(db.Integer, db.ForeignKey('member.id'), nullable=False, index=True, comment='會員')
     type = db.Column(db.Integer, nullable=False, comment='Const.Task.Type')
     remark = db.Column(db.String(100), comment='備註')
-    delete_datetime = db.Column(db.DateTime, comment='刪除時間')
+    delete_dt = db.Column(db.DateTime, comment='刪除時間')
 
     prize = db.relationship('TaskPrizeTransaction', backref='task_order', uselist=False, lazy='select')
 
@@ -159,7 +159,7 @@ class RewardOrder(db.Model, ModelsTemplate):
     reward_setting_id = db.Column(db.Integer, nullable=False)
     condition = db.Column(db.Integer)
     remark = db.Column(db.String(100), comment='備註')
-    delete_datetime = db.Column(db.DateTime, comment='刪除時間')
+    delete_dt = db.Column(db.DateTime, comment='刪除時間')
 
     prize = db.relationship('RewardPrizeTransaction', backref='reward_order', uselist=False, lazy='select')
 
@@ -195,7 +195,7 @@ class TaskPrizeTransaction(db.Model, ModelsTemplate):
     ticket = db.Column(db.JSON, comment='票券')
     exp = db.Column(db.Integer, nullable=False, server_default=text('0'), comment='經驗值')
     remark = db.Column(db.String(100), comment='備註')
-    delete_datetime = db.Column(db.DateTime, comment='刪除時間')
+    delete_dt = db.Column(db.DateTime, comment='刪除時間')
 
 
 class RewardPrizeTransaction(db.Model, ModelsTemplate):
@@ -207,4 +207,41 @@ class RewardPrizeTransaction(db.Model, ModelsTemplate):
     cash = db.Column(db.Integer, nullable=False, server_default=text('0'), comment='儲值金額度')
     ticket = db.Column(db.JSON, comment='票券')
     remark = db.Column(db.String(100), comment='備註')
-    delete_datetime = db.Column(db.DateTime, comment='刪除時間')
+    delete_dt = db.Column(db.DateTime, comment='刪除時間')
+
+
+class LottoDraw(db.Model, ModelsTemplate):
+    __tablename__ = 'lotto_draw'
+    name = db.Column(db.String(30), comment='date number')
+    period = db.Column(db.Integer, nullable=False, unique=True, index=True, comment='旗號')
+    number = db.Column(db.JSON, nullable=False, comment='7 個號碼')
+    fee = db.Column(db.Integer, comment='fee for join')
+    size = db.Column(db.Integer, comment='maxium 最大投注人數')
+    remark = db.Column(db.String(100), comment='備註')
+    is_archive = db.Column(db.Boolean, server_default='0', comment='是否封存')
+
+class LottoOrder(db.Model, ModelsTemplate):
+    """ 樂透 訂單 """
+    __tablename__ = 'lotto_order'
+    no = db.Column(db.String(30), db.ForeignKey('order.id'), nullable=False, unique=True, index=True, comment='系統order單號')
+    member_id = db.Column(db.Integer, db.ForeignKey('member.id'), nullable=False, index=True, comment='會員')
+    type = db.Column(db.Integer, nullable=False, comment='Const.Task.Type')
+    number = db.Column(db.JSON, nullable=False, comment='7 個號碼')
+    match = db.Column(db.Integer, comment='中獎數')
+    is_archive = db.Column(db.Boolean, server_default='0', comment='是否封存')
+    remark = db.Column(db.String(100), comment='備註')
+    delete_dt = db.Column(db.DateTime, comment='刪除時間')
+
+    prize = db.relationship('RewardPrizeTransaction', backref='lotto_order', uselist=False, lazy='select')
+    fee = db.relationship('LottoFeeTransaction', backref='lotto_order', uselist=False, lazy='select')
+
+class LottoFeeTransaction(db.Model, ModelsTemplate):
+    """ 費用單 """
+    __tablename__ = 'lotto_fee_transaction'
+    member_id = db.Column(db.Integer, db.ForeignKey('member.id'), nullable=False, index=True, comment='會員')
+    order_id = db.Column(db.Integer, db.ForeignKey('daily_bonus_order.id'), nullable=False, index=True, comment='訂單')
+    no = db.Column(db.String(30), nullable=False, unique=True, index=True, comment='交易單號')
+    cash = db.Column(db.Integer, nullable=False, server_default=text('0'), comment='儲值金額度')
+    ticket = db.Column(db.JSON, comment='票券')
+    remark = db.Column(db.String(100), comment='備註')
+    delete_dt = db.Column(db.DateTime, comment='刪除時間')

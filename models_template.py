@@ -16,9 +16,9 @@ class ModelsTemplate(object):
         return column
 
     @declared_attr
-    def update_datetime(self):
+    def update_dt(self):
         return db.Column(db.DateTime, nullable=False, server_default=func.now(), onupdate=func.now(), comment='更新時間')
 
     @declared_attr
-    def create_datetime(self):
+    def create_dt(self):
         return db.Column(db.DateTime, nullable=False, server_default=func.now(), comment='建立時間')
