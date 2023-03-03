@@ -4,6 +4,7 @@ from common.const import Const
 from common.models import (
     TaskPrizeTransaction,
     RewardPrizeTransaction,
+    LottoFeeTransaction,
 )
 from common.utils.encrypt_tool import KeyGenerator
 
@@ -13,6 +14,7 @@ class TransactionTool:
     _TRANSACTION_MODEL = {
         Const.Transaction.Type.TASK_PRIZE: TaskPrizeTransaction,
         Const.Transaction.Type.REWARD_PRIZE: RewardPrizeTransaction,
+        Const.Transaction.Type.LOTTO_FEE: LottoFeeTransaction,
     }
 
     @classmethod
