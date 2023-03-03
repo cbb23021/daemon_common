@@ -234,12 +234,22 @@ class LottoOrder(db.Model, ModelsTemplate):
     settle_dt = db.Column(db.DateTime, comment='結算時間')
     delete_dt = db.Column(db.DateTime, comment='刪除時間')
 
-    prize = db.relationship('RewardPrizeTransaction', backref='lotto_order', uselist=False, lazy='select')
+    prize = db.relationship('LottoPrizeTransaction', backref='lotto_order', uselist=False, lazy='select')
     fee = db.relationship('LottoFeeTransaction', backref='lotto_order', uselist=False, lazy='select')
 
 class LottoFeeTransaction(db.Model, ModelsTemplate):
     """ 費用單 """
     __tablename__ = 'lotto_fee_transaction'
+    member_id = db.Column(db.Integer, db.ForeignKey('member.id'), nullable=False, index=True, comment='會員')
+    order_id = db.Column(db.Integer, db.ForeignKey('lotto_order.id'), nullable=False, index=True, comment='訂單')
+    no = db.Column(db.String(30), nullable=False, unique=True, index=True, comment='交易單號')
+    cash = db.Column(db.Integer, nullable=False, server_default=text('0'), comment='儲值金額度')
+    ticket = db.Column(db.JSON, comment='票券')
+    remark = db.Column(db.String(100), comment='備註')
+    delete_dt = db.Column(db.DateTime, comment='刪除時間')
+
+class LottoPrizeTransaction(db.Model, ModelsTemplate):
+    __tablename__ = 'lotto_prize_transaction'
     member_id = db.Column(db.Integer, db.ForeignKey('member.id'), nullable=False, index=True, comment='會員')
     order_id = db.Column(db.Integer, db.ForeignKey('lotto_order.id'), nullable=False, index=True, comment='訂單')
     no = db.Column(db.String(30), nullable=False, unique=True, index=True, comment='交易單號')
