@@ -3,7 +3,7 @@ from datetime import datetime
 
 import pytz
 
-from app import rs, rs_f_decode
+from app import rs
 from common.const import Const
 from common.models import Blacklist, Whitelist
 from common.utils.redis_key import RedisKey
