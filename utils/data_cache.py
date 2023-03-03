@@ -137,9 +137,10 @@ class DataCache:
         return rs.rpop(key)
 
     @staticmethod
-    def push_order_data_to_used(draw_id, order_id, member_id, cash, ticket, number, join_dt, remark):
+    def push_order_data_to_used(draw_id, order_id, member_id, cash, ticket, a,
+                                b, c, d, e, f, g, join_dt, remark):
         key = RedisKey.used_order_data(draw_id=draw_id)
-        value = f'{order_id}:{member_id}:{cash}:{ticket}:{number}:{join_dt}:{remark}'
+        value = f'{order_id}:{member_id}:{cash}:{ticket}:{a}:{b}:{c}:{d}:{e}:{f}:{g}:{join_dt}:{remark}'
         rs.lpush(key, value)
 
     # daemon 用
